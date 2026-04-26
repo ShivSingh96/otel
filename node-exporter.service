@@ -1,0 +1,23 @@
+[Unit]
+Description=Node Exporter
+After=docker.service
+Requires=docker.service
+
+[Service]
+Restart=always
+RestartSec=5
+
+ExecStartPre=-/usr/bin/docker rm -f node-exporter
+
+ExecStart=/usr/bin/docker run \
+  --name=node-exporter \
+  --net=host \
+  --pid=host \
+  -v /:/host:ro,rslave \
+  prom/node-exporter \
+  --path.rootfs=/host
+
+ExecStop=/usr/bin/docker stop node-exporter
+
+[Install]
+WantedBy=multi-user.target

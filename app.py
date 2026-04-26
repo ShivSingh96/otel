@@ -12,10 +12,6 @@ from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
-# for P95 latency
-from opentelemetry.sdk.metrics.view import View
-from opentelemetry.sdk.metrics.aggregation import ExplicitBucketHistogramAggregation
-
 # Inject trace/span context into Python logging records
 LoggingInstrumentor().instrument(set_logging_format=True)
 
