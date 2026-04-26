@@ -78,9 +78,7 @@ groups:
           description: "CPU usage > 80% on {{ $labels.instance }}"
 
       - alert: HighMemoryUsage
-        expr: (
-          (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes)
-          / node_memory_MemTotal_bytes) * 100 > 80
+        expr: (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) < 0.15
         for: 2m
         labels:
           severity: warning
