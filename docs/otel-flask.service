@@ -1,0 +1,51 @@
+[Unit]
+Description=Gunicorn for Flask OpenTelemetry app
+After=network.target docker.service
+Wants=docker.service
+
+[Service]
+User=ec2-user
+Group=ec2-user
+WorkingDirectory=/home/ec2-user/otel-python
+
+# OTel env vars
+#EnvironmentFile=/home/ec2-user/otel-python/.env
+
+# ---- Trace sampling ----
+Environment="OTEL_TRACES_SAMPLER=parentbased_traceidratio"
+Environment="OTEL_TRACES_SAMPLER_ARG=0.2"
+
+# ---- BSP tuning (trace export batching) ----
+Environment="OTEL_BSP_MAX_QUEUE_SIZE=2048"
+Environment="OTEL_BSP_MAX_EXPORT_BATCH_SIZE=512"
+Environment="OTEL_BSP_SCHEDULE_DELAY=5000"
+Environment="OTEL_BSP_EXPORT_TIMEOUT=30000"
+
+# ---- Resource attributes (standard dimensions) ----
+Environment="OTEL_RESOURCE_ATTRIBUTES=deployment.environment=dev,service.version=1.0.0,cloud.region=ap-southeast-2"
+
+Environment="OTEL_SERVICE_NAME=hello-flask-service"
+
+Environment="OTEL_EXPORTER_OTLP_PROTOCOL=grpc"
+Environment="OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4319"
+Environment="OTEL_EXPORTER_OTLP_INSECURE=true"
+
+Environment="OTEL_METRICS_EXPORTER=otlp"
+Environment="OTEL_EXPORTER_OTLP_METRICS_PROTOCOL=grpc"
+Environment="OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=http://localhost:4319"
+Environment="OTEL_EXPORTER_OTLP_METRICS_INSECURE=true"
+
+Environment="OTEL_PYTHON_LOG_CORRELATION=true"
+Environment="OTEL_PYTHON_LOG_FORMAT=%%(asctime)s %%(levelname)s [trace_id=%%(otelTraceID)s span_id=%%(otelSpanID)s service=%%(otelServiceName)s sampled=%%(otelTraceSampled)s] %%(name)s - %%(message)s"
+Environment="OTEL_PYTHON_LOG_LEVEL=INFO"
+
+# Gunicorn
+ExecStart=/home/ec2-user/otel-python/.venv/bin/gunicorn -w 2 -k gthread --threads 4 -b 0.0.0.0:5000 app:app
+
+# Reliability
+Restart=always
+RestartSec=5
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target

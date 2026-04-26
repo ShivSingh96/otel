@@ -1,0 +1,95 @@
+services:
+  jaeger:
+    image: jaegertracing/all-in-one:1.57
+    container_name: jaeger
+    restart: unless-stopped
+    ports:
+      - "16686:16686"   # UI (restrict SG to your IP)
+      - "4317:4317"     # Jaeger OTLP gRPC ingest
+      - "4318:4318"     # Jaeger OTLP HTTP ingest
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:16686"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+    networks:
+      - otel-net
+    volumes:
+      - jaeger-data:/badger  # persist all-in-one storage
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.150.1
+    container_name: otel-collector
+    restart: unless-stopped
+    command: ["--config=/etc/otelcol/config.yaml"]
+    ports:
+      - "4319:4317"     # app -> collector OTLP gRPC
+      - "4320:4318"     # app -> collector OTLP HTTP
+      - "9464:9464"     # prometheus metrics endpoint
+      - "13133:13133"   # collector health
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otelcol/config.yaml:ro
+    depends_on:
+      jaeger:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "/otelcol-contrib", "--version"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+    networks:
+      - otel-net
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./alerts.yml:/etc/prometheus/alerts.yml:ro
+    depends_on:
+      otel-collector:
+        condition: service_healthy
+    networks:
+      - otel-net
+
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    container_name: alertmanager
+    restart: unless-stopped
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    command:
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+    networks:
+      - otel-net
+
+  grafana:
+    image: grafana/grafana:11.4.1
+    container_name: grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=Shiv@grafana11$
+      - GF_SECURITY_ADMIN_PASSWORD=Shiv@grafana11$
+    depends_on:
+      - prometheus
+    networks:
+      - otel-net
+    volumes:
+      - grafana-storage:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+
+networks:
+  otel-net:
+    driver: bridge
+
+volumes:
+  jaeger-data:
+  grafana-storage:

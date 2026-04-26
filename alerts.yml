@@ -1,0 +1,57 @@
+groups:
+  - name: otel-baseline-alerts
+    rules:
+      - alert: OTelCollectorPromExporterDown
+        expr: up{job="otel-collector-prom-exporter"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "OTel Collector metrics target is down"
+          description: "Prometheus cannot scrape otel-collector:9464 for 2 minutes."
+
+      - alert: NoAppTraffic
+        expr: increase(http_requests_total[5m]) == 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "No app traffic in last 5 minutes"
+          description: "http_requests_total did not increase in 5m."
+
+      - alert: HighP95Latency
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (le) (rate(http_request_duration_ms_bucket[5m]))
+          ) > 500
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High p95 request latency"
+          description: "p95 latency is above 500ms for 5m."
+
+      - alert: AlwaysFiringTest
+        expr: vector(1)
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Always firing test alert"
+          description: "Test alert for Slack integration"
+
+      # Enable this only if you export status-code labeled counters
+      # - alert: High5xxErrorRate
+      #   expr: |
+      #     (
+      #       sum(rate(http_requests_total{status_code=~"5.."}[5m]))
+      #       /
+      #       sum(rate(http_requests_total[5m]))
+      #     ) > 0.02
+      #   for: 5m
+      #   labels:
+      #     severity: critical
+      #   annotations:
+      #     summary: "High 5xx error ratio"
+      #     description: "5xx ratio > 2% for 5m."

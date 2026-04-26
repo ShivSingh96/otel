@@ -1,0 +1,37 @@
+{
+    "title": "SRE Starter Dashboard",
+    "panels": [
+      {
+        "type": "timeseries",
+        "title": "Request Rate",
+        "targets": [
+          {
+            "expr": "sum(rate(http_requests_total[1m]))"
+          }
+        ],
+        "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 }
+      },
+      {
+        "type": "timeseries",
+        "title": "P95 Latency",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_ms_bucket[5m])) by (le))"
+          }
+        ],
+        "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 }
+      },
+      {
+        "type": "stat",
+        "title": "Firing Alerts",
+        "targets": [
+          {
+            "expr": "ALERTS{alertstate=\"firing\"}"
+          }
+        ],
+        "gridPos": { "x": 0, "y": 8, "w": 24, "h": 6 }
+      }
+    ],
+    "schemaVersion": 38,
+    "version": 1
+  }
