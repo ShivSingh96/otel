@@ -6,6 +6,7 @@ groups:
         for: 2m
         labels:
           severity: critical
+          category: app
         annotations:
           summary: "OTel Collector metrics target is down"
           description: "Prometheus cannot scrape otel-collector:9464 for 2 minutes."
@@ -28,19 +29,65 @@ groups:
         for: 5m
         labels:
           severity: warning
+          category: app
         annotations:
           summary: "High p95 request latency"
           description: "p95 latency is above 500ms for 5m."
 
-      - alert: AlwaysFiringTest
-        expr: vector(1)
-        for: 1m
+      - alert: HighDiskUsageWarning
+        expr: |
+          (
+            node_filesystem_size_bytes{fstype!~"tmpfs|overlay", mountpoint!~"/run|/proc|/sys"}
+            - node_filesystem_free_bytes{fstype!~"tmpfs|overlay", mountpoint!~"/run|/proc|/sys"}
+          )
+          /
+          node_filesystem_size_bytes{fstype!~"tmpfs|overlay", mountpoint!~"/run|/proc|/sys"}
+          * 100 > 80
+        for: 2m
         labels:
           severity: warning
+          category: infra
         annotations:
-          summary: "Always firing test alert"
-          description: "Test alert for Slack integration"
+          summary: "Disk usage above 80%"
+          description: "Disk usage is above 80% on {{ $labels.instance }} ({{ $labels.mountpoint }})"
 
+      - alert: HighDiskUsageCritical
+        expr: |
+          (
+            node_filesystem_size_bytes{fstype!~"tmpfs|overlay", mountpoint!~"/run|/proc|/sys"}
+            - node_filesystem_free_bytes{fstype!~"tmpfs|overlay", mountpoint!~"/run|/proc|/sys"}
+          )
+          /
+          node_filesystem_size_bytes{fstype!~"tmpfs|overlay", mountpoint!~"/run|/proc|/sys"}
+          * 100 > 90
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Disk usage above 90% 🚨"
+          description: "Disk usage is above 90% on {{ $labels.instance }} ({{ $labels.mountpoint }})"
+
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[2m])) * 100) > 80
+        for: 2m
+        labels:
+          severity: warning
+          category: infra
+        annotations:
+          summary: "High CPU usage"
+          description: "CPU usage > 80% on {{ $labels.instance }}"
+
+      - alert: HighMemoryUsage
+        expr: (
+          (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes)
+          / node_memory_MemTotal_bytes) * 100 > 80
+        for: 2m
+        labels:
+          severity: warning
+          category: infra
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage > 80% on {{ $labels.instance }}"
       # Enable this only if you export status-code labeled counters
       # - alert: High5xxErrorRate
       #   expr: |

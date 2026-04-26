@@ -1,5 +1,5 @@
 {
-    "title": "SRE Starter Dashboard",
+    "title": "App & Infra Dashboard",
     "panels": [
       {
         "type": "timeseries",
@@ -31,16 +31,6 @@
         "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 }
       },
       {
-        "type": "stat",
-        "title": "Firing Alerts",
-        "targets": [
-          {
-            "expr": "count(ALERTS{alertstate=\"firing\"})"
-          }
-        ],
-        "gridPos": { "x": 0, "y": 8, "w": 24, "h": 6 }
-      },
-      {
         "type": "timeseries",
         "title": "CPU Usage %",
         "targets": [
@@ -65,11 +55,21 @@
         "title": "Disk Usage %",
         "targets": [
           {
-            "expr": "(node_filesystem_size_bytes{fstype!~\"tmpfs|overlay\"} - node_filesystem_free_bytes{fstype!~\"tmpfs|overlay\"}) / node_filesystem_size_bytes{fstype!~\"tmpfs|overlay\"} * 100",
-            "legendFormat": "{{instance}}"
+            "expr": "(node_filesystem_size_bytes{fstype!~\"tmpfs|overlay\", mountpoint!~\"/run|/proc|/sys\"} - node_filesystem_free_bytes{fstype!~\"tmpfs|overlay\", mountpoint!~\"/run|/proc|/sys\"}) / node_filesystem_size_bytes{fstype!~\"tmpfs|overlay\", mountpoint!~\"/run|/proc|/sys\"} * 100",
+            "legendFormat": "{{instance}} - {{mountpoint}}"
           }
         ],
         "gridPos": { "x": 16, "y": 14, "w": 8, "h": 6 }
+      },
+      {
+        "type": "stat",
+        "title": "Firing Alerts",
+        "targets": [
+          {
+            "expr": "count(ALERTS{alertstate=\"firing\"})"
+          }
+        ],
+        "gridPos": { "x": 0, "y": 8, "w": 24, "h": 6 }
       }
     ],
     "schemaVersion": 38,
